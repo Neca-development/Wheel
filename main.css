@@ -124,6 +124,12 @@ td.pw3
     position: absolute;
 }
 
+#wheel-arrow {
+    z-index: 2;
+    position: relative;
+    bottom: 220px;
+}
+
 /* @keyframes wheel {
     from {
         transform: scale(1);
