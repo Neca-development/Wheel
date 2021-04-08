@@ -1,21 +1,345 @@
-<script src='script.js'></script>
-<link rel="stylesheet" href="main.css">
-<button onclick="Roll()">Roll Wheel</button>
-<div id="wrapper" class="wrapper hide">
-  <div class="wrap">
-  <div id="msg" onclick="takePrize()"></div>
-  <ul id="roulette">
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-      <li></li>
-    </ul>
-    </div>
-</div>
-              
+<html>
+    <head>
+        <title>HTML5 Canvas Winning Wheel</title>
+        <link rel="stylesheet" href="main.css" type="text/css" />
+        <script type="text/javascript" src="Winwheel.min.js"></script>
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+    </head>
+    <body>
+        <button onclick="Roll()">Roll Wheel</button>
+        <div id="wrapper" class="wrapper hide">
+            <div class="wrap">
+                <img id="wheel-back" src="wheel_back.png" alt="back">
+            <canvas id="canvas" width="434" height="434" onclick="startSpin()">
+                <p style="color: white">Sorry, your browser doesn't support canvas. Please try another.</p>
+            </canvas>
+            <div id="hb-wrapper" class="hb-wrapper">
+                <h1 id="prize" class="hide" onclick="takePrize()"></h1>
+            </div>
+        </div>
+        <script>
+            // Create new wheel object specifying the parameters at creation time.
+            let theWheel = new Winwheel({
+                'outerRadius'     : 212,        // Set outer radius so wheel fits inside the background.
+                // 'innerRadius'     : 75,         // Make wheel hollow so segments don't go all way to center.
+                'textFontSize'    : 24,         // Set default font size for the segments.
+                'textOrientation' : 'vertical', // Make text vertial so goes down from the outside of wheel.
+                'textAlignment'   : 'outer',    // Align text to outside of wheel.
+                'numSegments'     : 12,         // Specify number of segments.
+                'responsive'   : true,  // This wheel is responsive!
+                'segments'        :             // Define segments including colour and text.
+                [                               // font size and test colour overridden on backrupt segments.
+                   {'fillStyle' : '#ee1c24', 'text' : '300'},
+                   {'fillStyle' : '#3cb878', 'text' : '450'},
+                   {'fillStyle' : '#f6989d', 'text' : '600'},
+                   {'fillStyle' : '#00aef0', 'text' : '750'},
+                   {'fillStyle' : '#f26522', 'text' : '500'},
+                   {'fillStyle' : '#000000', 'text' : 'BANKRUPT', 'textFontSize' : 16, 'textFillStyle' : '#ffffff'},
+                   {'fillStyle' : '#e70697', 'text' : '3000'},
+                   {'fillStyle' : '#fff200', 'text' : '600'},
+                   {'fillStyle' : '#f6989d', 'text' : '700'},
+                   {'fillStyle' : '#ee1c24', 'text' : '350'},
+                   {'fillStyle' : '#3cb878', 'text' : '500'},
+                   {'fillStyle' : '#f26522', 'text' : '800'},
+                   {'fillStyle' : '#a186be', 'text' : '300'},
+                   {'fillStyle' : '#fff200', 'text' : '400'},
+                   {'fillStyle' : '#00aef0', 'text' : '650'},
+                   {'fillStyle' : '#ee1c24', 'text' : '1000'},
+                   {'fillStyle' : '#f6989d', 'text' : '500'},
+                   {'fillStyle' : '#f26522', 'text' : '400'},
+                   {'fillStyle' : '#3cb878', 'text' : '900'},
+                   {'fillStyle' : '#000000', 'text' : 'BANKRUPT', 'textFontSize' : 16, 'textFillStyle' : '#ffffff'},
+                   {'fillStyle' : '#a186be', 'text' : '600'},
+                   {'fillStyle' : '#fff200', 'text' : '700'},
+                   {'fillStyle' : '#00aef0', 'text' : '800'},
+                   {'fillStyle' : '#ffffff', 'text' : 'LOOSE TURN', 'textFontSize' : 12}
+                ],
+                'animation' :           // Specify the animation to use.
+                {
+                    'type'     : 'spinToStop',
+                    'duration' : 10,    // Duration in seconds.
+                    'spins'    : 1,     // Default number of complete spins.
+                    'callbackFinished' : alertPrize,
+                    'callbackSound'    : playSound,   // Function to call when the tick sound is to be triggered.
+                    'soundTrigger'     : 'pin'        // Specify pins are to trigger the sound, the other option is 'segment'.
+                },
+                'pins' :				// Turn pins on.
+                {
+                    'responsive' : true, // This must be set to true if pin size is to be responsive, if not just location is.
+                    'number'     : 0,
+                    'fillStyle'  : 'silver',
+                    'outerRadius': 4,
+                }
+            });
+
+            // Loads the tick audio sound in to an audio object.
+            let audio = new Audio('tick.mp3');
+
+            // This function is called when the sound is to be played.
+            function playSound()
+            {
+                // Stop and rewind the sound if it already happens to be playing.
+                audio.pause();
+                audio.currentTime = 0;
+
+                // Play the sound.
+                audio.play();
+            }
+
+            // Vars used by the code in this page to do power controls.
+            let wheelPower    = 0;
+            let wheelSpinning = false;
+            // -------------------------------------------------------
+            // Click handler for spin button.
+            // -------------------------------------------------------
+            function startSpin()
+            {
+                // Ensure that spinning can't be clicked again while already running.
+                if (wheelSpinning == false) {
+                    // Based on the power level selected adjust the number of spins for the wheel, the more times is has
+                    // to rotate with the duration of the animation the quicker the wheel spins.
+                    if (wheelPower == 1) {
+                        theWheel.animation.spins = 3;
+                    } else if (wheelPower == 2) {
+                        theWheel.animation.spins = 6;
+                    } else if (wheelPower == 3) {
+                        theWheel.animation.spins = 10;
+                    }
+
+                    // Begin the spin animation by calling startAnimation on the wheel object.
+                    theWheel.startAnimation();
+
+                    // Set to true so that power can't be changed and spin button re-enabled during
+                    // the current animation. The user will have to reset before spinning again.
+                    wheelSpinning = true;
+                }
+            }
+
+            // -------------------------------------------------------
+            // Function for reset button.
+            // -------------------------------------------------------
+            function resetWheel()
+            {
+                theWheel.stopAnimation(false);  // Stop the animation, false as param so does not call callback function.
+                theWheel.rotationAngle = 0;     // Re-set the wheel angle to 0 degrees.
+                theWheel.draw();                // Call draw to render changes to the wheel.
+                wheelSpinning = false;          // Reset to false to power buttons and spin can be clicked again.
+            }
+
+            // -------------------------------------------------------
+            // Called when the spin animation has finished by the callback feature of the wheel because I specified callback in the parameters.
+            // -------------------------------------------------------
+            function alertPrize(indicatedSegment)
+            {
+                // Just alert to the user what happened.
+                // In a real project probably want to do something more interesting than this with the result.
+                if (indicatedSegment.text == 'LOOSE TURN') {
+                    alert('Sorry but you loose a turn.');
+                } else if (indicatedSegment.text == 'BANKRUPT') {
+                    alert('Oh no, you have gone BANKRUPT!');
+                } else {
+                    init();
+                    draw();
+                    document.getElementById('canvas').className = "animation";
+                    document.getElementById('prize').innerText = "You have won " + indicatedSegment.text;
+                    document.getElementById('prize').className = "show";
+                }
+                resetWheel();
+            }
+
+            function takePrize(){
+                document.getElementById('canvas').className = "";
+                document.getElementById('wrapper').className = "wrapper hide";
+            }
+
+            function Roll(){
+                document.getElementById('wrapper').className = "wrapper show";
+            }
+
+            var rnd = Math.random,
+  flr = Math.floor;
+
+let canvas = document.createElement('canvas');
+document.getElementById('hb-wrapper').appendChild(canvas);
+canvas.style.position = 'absolute';
+canvas.style.width = '100%';
+canvas.style.height = '100%';
+
+canvas.width = canvas.clientWidth;
+canvas.height = canvas.clientHeight;
+
+let ctx = canvas.getContext('2d');
+
+function rndNum(num) {
+  return rnd() * num + 1;
+}
+
+function vector(x, y) {
+  this.x = x;
+  this.y = y;
+
+  this.add = function(vec2) {
+    this.x = this.x + vec2.x;
+    this.y = this.y + vec2.y;
+  }
+}
+
+function particle(pos, vel) {
+  this.pos = new vector(pos.x, pos.y);
+  this.vel = vel;
+  this.dead = false;
+  this.start = 0;
+
+  this.update = function(time) {
+    let timeSpan = time - this.start;
+
+    if (timeSpan > 500) {
+      this.dead = true;
+    }
+
+    if (!this.dead) {
+      this.pos.add(this.vel);
+      this.vel.y = this.vel.y + gravity;
+    }
+  };
+
+  this.draw = function() {
+    if (!this.dead) {
+      drawDot(this.pos.x, this.pos.y, 1);
+    }
+  }
+
+}
+
+function firework(x, y) {
+
+  this.pos = new vector(x, y);
+  this.vel = new vector(0, -rndNum(10) - 3);
+  this.color = 'hsl(' + rndNum(360) + ', 100%, 50%)'
+  this.size = 4;
+  this.dead = false;
+  this.start = 0;
+  let exParticles = [],
+    exPLen = 100;
+
+  let rootShow = true;
+
+  this.update = function(time) {
+    if (this.dead) {
+      return;
+    }
+
+    rootShow = this.vel.y < 0;
+
+    if (rootShow) {
+      this.pos.add(this.vel);
+      this.vel.y = this.vel.y + gravity;
+    } else {
+      if (exParticles.length === 0) {
+        flash = true;
+        for (let i = 0; i < exPLen; i++) {
+          exParticles.push(new particle(this.pos, new vector(-rndNum(10) + 5, -rndNum(10) + 5)));
+          exParticles[exParticles.length - 1].start = time;
+        }
+      }
+      let numOfDead = 0;
+      for (let i = 0; i < exPLen; i++) {
+        let p = exParticles[i];
+        p.update(time);
+        if (p.dead) {
+          numOfDead++;
+        }
+      }
+
+      if (numOfDead === exPLen) {
+        this.dead = true;
+      }
+
+    }
+  }
+
+  this.draw = function() {
+    if (this.dead) {
+      return;
+    }
+
+    ctx.fillStyle = this.color;
+    if (rootShow) {
+      drawDot(this.pos.x, this.pos.y, this.size);
+    } else {
+      for (let i = 0; i < exPLen; i++) {
+        let p = exParticles[i];
+        p.draw();
+      }
+    }
+  }
+
+}
+
+function drawDot(x, y, size) {
+  ctx.beginPath();
+
+  ctx.arc(x, y, size, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.closePath();
+}
+
+var fireworks = [],
+  gravity = 0.2,
+  snapTime = 0,
+  flash = false;
+
+function init() {
+  let numOfFireworks = 20;
+  for (let i = 0; i < numOfFireworks; i++) {
+    fireworks.push(new firework(rndNum(canvas.width), canvas.height));
+  }
+}
+
+function update(time) {
+  for (let i = 0, len = fireworks.length; i < len; i++) {
+    let p = fireworks[i];
+    p.update(time);
+  }
+}
+
+function draw(time) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    update(time);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  if (flash) {
+    flash = false;
+  }
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = 'white';
+  ctx.font = "30px Arial";
+  let newTime = time - snapTime;
+  snapTime = time;
+
+  //ctx.fillText(newTime,10,50);
+
+  ctx.fillStyle = 'blue';
+  for (let i = 0, len = fireworks.length; i < len; i++) {
+    let p = fireworks[i];
+    if (p.dead) {
+      fireworks[i] = new firework(rndNum(canvas.width), canvas.height);
+      p = fireworks[i];
+      p.start = time;
+    }
+    p.draw();
+  }
+
+  window.requestAnimationFrame(draw);
+}
+
+window.addEventListener('resize', function() {
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+});
+        </script>
+    </body>
+</html>
