@@ -9,9 +9,7 @@
         <button onclick="Roll()">Roll Wheel</button>
         <div id="wrapper" class="wrapper hide">
             <div class="wrap">
-                <img id="wheel-back" src="wheel_back_.png" alt="back">
-                <img id="wheel-arrow" src="whw.png" alt="back">
-            <canvas id="canvas" width="434" height="434" onclick="startSpin()">
+            <canvas id="canvas" class="wheel" width="434" height="434" onclick="startSpin()">
                 <p style="color: white">Sorry, your browser doesn't support canvas. Please try another.</p>
             </canvas>
             <div id="hb-wrapper" class="hb-wrapper">
@@ -145,7 +143,7 @@
                     document.getElementById('prize').innerText = "You have won " + indicatedSegment.text;
                     document.getElementById('prize').className = "show";
                 }
-                resetWheel();
+                // resetWheel();
             }
 
             function takePrize(){
